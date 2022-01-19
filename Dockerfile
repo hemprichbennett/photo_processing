@@ -8,4 +8,5 @@ RUN apt upgrade -yq
 RUN apt-get -yq install git libimage-exiftool-perl
 
 
-RUN Rscript -e 'install.packages("exiftoolr")'
+RUN Rscript -e 'install.packages(c("exiftoolr", "lubridate", "magrittr", "dplyr"))'
+
