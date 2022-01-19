@@ -56,7 +56,8 @@ refined_tib <- list.files(path = 'inphotos', full.names = T) %>%
 
 modded_tib <- refined_tib %>%
   # make some better values
-  mutate(better_timestamp = format_ISO8601(ymd_hms(CreateDate)),
+  mutate(timestamp_formatted = ymd_hms(CreateDate),
+    better_timestamp = format_ISO8601(timestamp_formatted),
          # the format_ISO8601 command sadly separates time with colons
          # which are annoying in filenames,  lets make them hyphens
          better_timestamp = gsub(':', '-', better_timestamp),
@@ -114,13 +115,13 @@ all_locations <- list.files('Trails', full.names = T) %>%
 
 is.na(modded_tib$GPSLatitude)
 
-get_coords <- function(better_timestamp,  GPSAltitude, GPSLatitude, GPSLongitude){
+get_coords <- function(timestamp_formatted,  GPSAltitude, GPSLatitude, GPSLongitude){
   # if it's already got geotagging, we don't want to do anything to it
-  if(!is.na(GPSAltitude) | !is.na(GPSLatitude) | !is.na(GPSLongitude)){
-    stop()
-  }
+  # if(!is.na(GPSAltitude) | !is.na(GPSLatitude) | !is.na(GPSLongitude)){
+  #   stop()
+  # }
   tiny_tib <- all_locations %>%
-    mutate(time_diff = difftime(times, better_timestamp)) %>%
+    mutate(time_diff = abs(difftime(times, timestamp_formatted))) %>%
     filter(time_diff == min(time_diff)) %>%
     # check if the time difference is less than or equal to 5 minutes. If not,
     # we don't want to use it
@@ -132,9 +133,14 @@ get_coords <- function(better_timestamp,  GPSAltitude, GPSLatitude, GPSLongitude
 }
 
 # e.g.
-get_coords(better_timestamp = modded_tib$better_timestamp[1], GPSAltitude = NA, GPSLongitude = NA, GPSLatitude = NA)
+onerow_trial <- get_coords(timestamp_formatted = modded_tib$timestamp_formatted[1], 
+                           GPSAltitude = NA, GPSLongitude = NA, GPSLatitude = NA)
 
 
 # we'll soon be able to make a column with the string returned by the above function using
-temp <- mutate(modded_tib, z = get_coords(better_timestamp,  
+temp <- mutate(modded_tib, z = get_coords(timestamp_formatted,  
                                   GPSAltitude, GPSLatitude, GPSLongitude))
+
+geotag_df <- mapply(get_coords, timestamp_formatted = modded_tib$timestamp_formatted, 
+            GPSAltitude = modded_tib$GPSAltitude, 
+            GPSLongitude = modded_tib$GPSLongitude, GPSLatitude = modded_tib$GPSLatitude)
