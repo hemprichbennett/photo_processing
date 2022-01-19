@@ -135,6 +135,6 @@ get_coords <- function(better_timestamp,  GPSAltitude, GPSLatitude, GPSLongitude
 get_coords(better_timestamp = modded_tib$better_timestamp[1], GPSAltitude = NA, GPSLongitude = NA, GPSLatitude = NA)
 
 
-# you can then make a column with the string returned by the above function using
+# we'll soon be able to make a column with the string returned by the above function using
 temp <- mutate(modded_tib, z = get_coords(better_timestamp,  
                                   GPSAltitude, GPSLatitude, GPSLongitude))
