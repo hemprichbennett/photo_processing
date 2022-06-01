@@ -3,7 +3,14 @@ library(dplyr)
 library(readr)
 library(data.table)
 library(magrittr)
+library(bit64)
 library(exiftoolr)
+
+
+save_exif <- function(){
+  outfile <- bind_rows(exif_tibs)
+  write_csv(x = outfile, path = exif_filename)
+}
 
 # recursively get the full filenames of every file in our desired directory
 all_filenames <- list.files('/Volumes/LaCie/photography_main/1_all_unedited',
@@ -14,11 +21,22 @@ all_filenames <- list.files('/Volumes/LaCie/photography_main/1_all_unedited',
 # this script, so that we can avoid unneccesarily rerunning 
 # the operation on thousands of files
 
-previous_runs <- fread(input = 'data/exif_data.csv', select = 'SourceFile')
+exif_filename <- 'data/exif_data.csv'
 
-# find the files that have NOT had their exif data parsed
-# in a previous run of this script
-filenames_to_run <- all_filenames[!all_filenames %in% previous_runs$SourceFile]
+dropcols <- c('ExifVersion', 'FlashpixVersion', 'InteropVersion', 'PrintIMVersion',
+			'ShutterSpeedValue')
+exif_tibs <- list()
+e <- 1
+if(file.exists(exif_filename)){
+  previous_runs <- fread(input = exif_filename, fill = T)
+  exif_tibs[[e]] <- previous_runs
+  e <- e + 1
+  # find the files that have NOT had their exif data parsed
+  # in a previous run of this script
+  filenames_to_run <- all_filenames[!all_filenames %in% previous_runs$SourceFile]
+}else{
+  filenames_to_run <- all_filenames
+}
 
 
 nfiles <- length(filenames_to_run)
@@ -30,14 +48,23 @@ if(nfiles > max_per_batch){
   max_i <- max_per_batch
   
   for(i in c(1:n_iterations)){
-    print(i)
+    #print(i)
+    #if(i == 3){break()}
+    cat('Starting iteration', i, 'of', n_iterations, '\n')
     desired_indexes <- seq(min_i, max_i)
-    print(desired_indexes)
-    exif_df <- exif_read(filenames_to_run[desired_indexes])
     
+    exif_df <- exif_read(filenames_to_run[desired_indexes], tags = 'All') 
+    
+    to_drop <- dropcols[dropcols %in% colnames(exif_df)]
+    exif_df <- exif_df %>%
+      select(-to_drop)
+    exif_tibs[[e]] <- exif_df
+    e <- e + 1
     # write the data
-    print('saving file')
-    write_csv(x = exif_df, path = 'data/exif_data.csv', append = T)
+    cat('Saving iteration', i, 'of', n_iterations, '\n\n\n')
+    save_exif()
+
+    
     # for every iteration apart from the penultimate one
     # assume that we need to increase the counters as much as 
     # possible for the next iteration
@@ -56,10 +83,15 @@ if(nfiles > max_per_batch){
 }else{
   cat(nfiles, ' photos\n')
   
-  exif_df <- exif_read(filenames_to_run)
+	exif_df <- exif_read(filenames_to_run, tags = 'All') 
+    
+    to_drop <- dropcols[dropcols %in% colnames(exif_df)]
+    exif_df <- exif_df %>%
+      select(-to_drop)
+    exif_tibs[[e]] <- exif_df
   # write the data
   print('saving file')
-  write_csv(x = exif_df, path = 'data/exif_data.csv', append = T)
+  save_exif()
   
   
   
