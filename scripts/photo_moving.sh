@@ -1,4 +1,4 @@
-cd /Volumes/LaCie/photography_main/1_all_unedited
+cd /Volumes/dhb_lacie_1/photography_main/1_all_unedited
 echo "Do you want to make a new directory?"
 select yn in "Yes" "No"; do
     case $yn in
